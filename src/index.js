@@ -13,7 +13,6 @@
 
 import sass from 'node-sass';
 import path from 'path';
-import inPlace from 'in-place';
 
 let render;
 const scssExt = /\.scss$/;
@@ -24,16 +23,13 @@ export default function () {
 
   return function exhibitSass(files) {
     const plugin = this;
-    const Promise = plugin.Promise;
-    const _ = plugin._;
+    const {Promise, _} = this;
 
-    if (!render) {
-      render = Promise.promisify(sass.render);
-    }
+    if (!render) render = Promise.promisify(sass.render);
 
     // establish the real array of files we want to work on.
     let partialsFound = false;
-    inPlace.filter(files, file => {
+    files = files.filter(file => {
       if (path.basename(file.filename).charAt(0) === '_') {
         // it's a partial - skip it, but note we've found it
         partialsFound = true;
@@ -103,12 +99,16 @@ export default function () {
 
           Promise.reduce(possiblePaths, (ref, filename) => {
             if (ref) return ref;
-            return plugin.readAll(filename);
+            return plugin.autoRead(filename);
           }, false).then(contents => {
+            console.log('DONE', done);
+
             if (!contents) {
               done(new Error('Could not find file to satisfy import: "' + url + '"; tried the following in all load paths: ' + possiblePaths.join(', ')));
             }
             else done({contents: contents.toString()});
+          }).catch(err => {
+            plugin.emit('error', err);
           });
         },
       };

@@ -3,8 +3,7 @@
   "version": "0.0.4",
   "author": "Callum Locke",
   "dependencies": {
-    "in-place": "^1.0.0",
-    "node-sass": "sass/node-sass"
+    "node-sass": "^3.0.0"
   },
   "devDependencies": {
     "babel": "^5.2.11",
