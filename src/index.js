@@ -1,137 +1,125 @@
-/*
-  TODO:
-    remove `knownEntries` and replace with `dependencies`, which is a hash of `importee:entries`.
-
-        - `importee` can be resolved partial or entry filename.
-        - `entries` is an array of file objects, all of which will have non-underscored filenames.
-        - the entries might not all be *direct* importers of that importee; some might import another file that subsequently imports that importee.
-
-    on every call of the custom importer, once you've resolved the imported filename and got some contents for it, add the original entry (`file`) to the list of entries (after *removing* an existing copy of the same file, if any).
- */
-
-'use strict';
-
 import sass from 'node-sass';
-import path from 'path';
+import {basename, normalize, join, dirname} from 'path';
 
 let render;
 const scssExt = /\.scss$/;
 
 export default function () {
 
-  const knownEntries = {};
-
-  return function exhibitSass(files) {
-    const plugin = this;
-    const {Promise, _} = this;
+  return function exhibitSass(path, contents) {
+    const {Promise, SourceError} = this;
 
     if (!render) render = Promise.promisify(sass.render);
 
-    // establish the real array of files we want to work on.
-    let partialsFound = false;
-    files = files.filter(file => {
-      if (path.basename(file.filename).charAt(0) === '_') {
-        // it's a partial - skip it, but note we've found it
-        partialsFound = true;
-        return false;
-      }
+    // pass non-sass files straight through
+    if (!scssExt.test(path)) return true;
 
-      // it's an entry - update in the index
-      if (file.type === 'delete') {
-        delete knownEntries[file.filename]; // whether or not it's there
-      }
-      else {
-        knownEntries[file.filename] = file; // whether update/create
-      }
+    // skip SCSS partials
+    if (basename(path).charAt(0) === '_') return null;
 
-      return true;
-    });
 
-    // for now: just add all the entries
-    if (partialsFound) {
-      Object.keys(knownEntries).forEach(entryFilename => {
-        files.push(knownEntries[entryFilename]);
-      });
-    }
+    // SITUATION: this is an SCSS entry file that we need to process.
 
-    // and dedupe.
-    files = _.uniq(files, 'filename');
-    console.log('SCSS FILES TO RENDER:', files);
 
-    return Promise.map(files, (file) => {
-      if (file.type === 'delete' || !scssExt.test(file.filename)) {
-        return file;
-      }
+    // establish the output path
+    const cssFilename = path.replace(scssExt, '.css');
+    const source = contents.toString();
 
-      const cssFilename = file.filename.replace(scssExt, '.css');
-      const dirname = path.dirname(file.filename);
-      const source = file.contents.toString();
+    // quick exit if the source is empty (in fact necessitated by https://github.com/sass/node-sass/issues/924)
+    if (!source) return {path: cssFilename, contents: ''};
 
-      if (!source) {
-        // workaround for https://github.com/sass/node-sass/issues/924
-        return {
-          filename: cssFilename,
-          contents: '',
-        };
-      }
+    // for erroring from partials, remember how imports get resolved
+    const rememberedImportContents = {};
+    // let actualPrev = path;
 
-      const sassOptions = {
-        data: source,
+    const prevLookup = {
+      stdin: path,
+    };
 
-        importer: (url, prev, done) => {
-          const resolvedURL = path.normalize(path.join(dirname, url));
-          const possiblePaths = [];
+    // establish options for node-sass
+    const sassOptions = {
+      data: source,
 
-          const urlParts = resolvedURL.split('/');
-          urlParts.push('_' + urlParts.pop());
-          const underscoredURL = urlParts.join('/');
+      importer: (url, prev, done) => {
+        // make a list of possible file paths
+        // const importingFile = (prev === 'stdin' ? path : join(dirname(path), prev));
+        const importingFile = prevLookup[prev];
 
-          if (scssExt.test(resolvedURL)) {
-            global.todo();
-            possiblePaths.push(resolvedURL);
-            possiblePaths.push(underscoredURL);
-          }
-          else {
-            possiblePaths.push(resolvedURL + '.scss');
-            possiblePaths.push(underscoredURL + '.scss');
-            possiblePaths.push(resolvedURL);
-          }
+        // console.log(`\nexhibit-sass import\n  init: ${path}\n  prev: ${prev}\n  file: ${importingFile}\n  impt: ${url}`);
 
-          Promise.reduce(possiblePaths, (ref, filename) => {
-            if (ref) return ref;
-            return plugin.autoRead(filename);
-          }, false).then(contents => {
-            console.log('DONE', done);
+        const resolvedURL = normalize(join(dirname(importingFile), url));
+        const projectRootURL = normalize(join(this.base, url));
 
-            if (!contents) {
-              done(new Error('Could not find file to satisfy import: "' + url + '"; tried the following in all load paths: ' + possiblePaths.join(', ')));
-            }
-            else done({contents: contents.toString()});
-          }).catch(err => {
-            plugin.emit('error', err);
-          });
-        },
-      };
+        // console.log('IMPORTER IN SASS', 'url:', url, '... prev:', prev, '... resolved:', resolvedURL);
+        // ALSO need to do the project root URL underscored... and generally rewrite this shite
 
-      return render(sassOptions)
-        .then(result => {
-          console.log('YOOO');
-          return {
-            filename: cssFilename,
-            contents: result.css,
-          };
-        })
-        .catch(err => {
-          console.log(Object.keys(err));
-          console.dir(err);
+        const possiblePaths = [];
 
-          plugin.emit('error', err);
+        const urlParts = resolvedURL.split('/');
+        urlParts.push('_' + urlParts.pop());
+        const underscoredURL = urlParts.join('/');
 
-          return {
-            filename: cssFilename,
-            contents: null,
-          };
+        const urlParts2 = projectRootURL.split('/');
+        urlParts2.push('_' + urlParts2.pop());
+        const underscoredProjectRootURL = urlParts2.join('/');
+
+
+        if (scssExt.test(resolvedURL)) {
+          // global.todo();
+          possiblePaths.push(resolvedURL);
+          possiblePaths.push(underscoredURL);
+          possiblePaths.push(projectRootURL);
+          possiblePaths.push(underscoredProjectRootURL);
+        }
+        else {
+          possiblePaths.push(resolvedURL + '.scss');
+          possiblePaths.push(underscoredURL + '.scss');
+          possiblePaths.push(projectRootURL + '.scss');
+          possiblePaths.push(underscoredProjectRootURL + '.scss');
+          possiblePaths.push(resolvedURL);
+        }
+
+        // console.log('\nexhibit-sass possiblePaths\n  ' + possiblePaths.join('\n  '));
+
+
+        // try them all in turn (later, `this.import` will take an array and do this for us - also checking *all* the possibilities in the local project before resorting to load paths, which will make it faster as it won't have to check disk locations all the time)
+        this.import(possiblePaths).then(result => {
+          // console.log(`exhibit-sass imported!\n  from (real): ${result.path}`);
+          prevLookup[url] = result.path;
+          rememberedImportContents[url] = result.contents;
+          done({contents: result.contents.toString()});
+        }).catch(error => {
+          // console.log('exhibit-sass ERROR! when importing ' + url, error, error.stack);
+
+          done(new Error(
+            `exhibit-sass: Could not find file to satisfy import: "${url}"; tried the ` +
+            `following: ${possiblePaths.join(', ')}`
+          ));
         });
-    });
+        return;
+      },
+    };
+
+
+    return render(sassOptions)
+      .catch(err => {
+        console.dir(err);
+
+        throw new SourceError({
+          message: err.message,
+          path: (err.file === 'stdin' ? path : err.file),
+          text: (err.file === 'stdin' ? source : rememberedImportContents[err.file]),
+          line: err.line,
+          column: err.column,
+        });
+      })
+      .then(result => {
+        const results = {};
+        results[cssFilename] = result.css;
+
+        // todo: add source map
+
+        return results;
+      });
   };
 }
