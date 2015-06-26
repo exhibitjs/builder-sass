@@ -92,9 +92,7 @@ export default function () {
           rememberedImportContents[url] = result.contents;
           resolvedImportPaths[url] = result.path;
           done({contents: result.contents.toString(), file: result.path});
-        }).catch(error => {
-          // console.log('exhibit-sass ERROR! when importing ' + url, error, error.stack);
-
+        }).catch(() => {
           // this is sending an error to Sass, which will send us a new error back including file/line details.
           done(new Error(
             `exhibit-sass: Could not find file to satisfy import: "${url}"; tried the ` +
