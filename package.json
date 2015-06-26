@@ -1,7 +1,11 @@
 {
   "name": "exhibit-sass",
+  "description": "Exhibit plugin for compiling SCSS files",
   "version": "0.0.4",
   "author": "Callum Locke",
+  "bugs": {
+    "url": "https://github.com/exhibitjs/exhibit-sass/issues"
+  },
   "dependencies": {
     "node-sass": "^3.2.0"
   },
@@ -14,11 +18,16 @@
   "files": [
     "lib"
   ],
+  "homepage": "https://github.com/exhibitjs/exhibit-sass",
   "keywords": [
     "exhibit-plugin"
   ],
   "license": "MIT",
   "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/exhibitjs/exhibit-sass.git"
+  },
   "scripts": {
     "build": "babel src --source-maps --out-dir lib",
     "prepublish": "eslint src && npm run build",
