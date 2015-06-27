@@ -1,7 +1,7 @@
 {
   "name": "exhibit-sass",
   "description": "Exhibit plugin for compiling SCSS files",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "Callum Locke",
   "bugs": {
     "url": "https://github.com/exhibitjs/exhibit-sass/issues"
