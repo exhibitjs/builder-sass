@@ -68,13 +68,13 @@ export default function () {
 
 
           if (scssExt.test(resolvedURL)) {
-            // global.todo();
             paths.push(resolvedURL);
             paths.push(underscoredURL);
             paths.push(projectRootURL);
             paths.push(underscoredProjectRootURL);
           }
           else {
+            paths.push(projectRootURL);
             paths.push(resolvedURL + '.scss');
             paths.push(underscoredURL + '.scss');
             paths.push(projectRootURL + '.scss');
@@ -86,7 +86,7 @@ export default function () {
         })();
 
         // try them all in turn (later, `this.import` will take an array and do this for us - also checking *all* the possibilities in the local project before resorting to load paths, which will make it faster as it won't have to check disk locations all the time)
-        this.import(possiblePaths).then(result => {
+        this.import(possiblePaths, ['scss', 'css']).then(result => {
           // console.log(`exhibit-sass imported!\n  from (real): ${result.path}`);
           // prevLookup[url] = result.path;
           rememberedImportContents[url] = result.contents;
