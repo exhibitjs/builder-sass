@@ -86,7 +86,7 @@ export default function () {
         })();
 
         // try them all in turn (later, `this.import` will take an array and do this for us - also checking *all* the possibilities in the local project before resorting to load paths, which will make it faster as it won't have to check disk locations all the time)
-        this.import(possiblePaths, ['scss', 'css']).then(result => {
+        this.importFirst(possiblePaths, ['scss', 'css']).then(result => {
           // console.log(`exhibit-sass imported!\n  from (real): ${result.path}`);
           // prevLookup[url] = result.path;
           rememberedImportContents[url] = result.contents;
@@ -95,8 +95,7 @@ export default function () {
         }).catch(() => {
           // this is sending an error to Sass, which will send us a new error back including file/line details.
           done(new Error(
-            `exhibit-sass: Could not find file to satisfy import: "${url}"; tried the ` +
-            `following: ${possiblePaths.join(', ')}`
+            `exhibit-sass: Could not import "${url}" from ${dirname(importingFile)}`
           ));
         });
         return;
