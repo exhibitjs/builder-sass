@@ -1,37 +1,35 @@
 {
-  "name": "exhibit-sass",
-  "description": "Exhibit plugin for compiling SCSS files",
+  "name": "exhibit-builder-sass",
+  "description": "Exhibit builder for compiling SCSS files",
   "version": "0.3.0",
   "author": "Callum Locke",
   "bugs": {
-    "url": "https://github.com/exhibitjs/exhibit-sass/issues"
+    "url": "https://github.com/exhibitjs/exhibit-builder-sass/issues"
   },
   "dependencies": {
-    "node-sass": "^3.2.0"
+    "node-sass": "^3.3.3"
   },
   "devDependencies": {
-    "babel": "^5.6.14",
-    "babel-eslint": "^3.1.19",
-    "eslint": "^0.24.0",
-    "nodemon": "^1.3.7"
+    "babel": "^5.8.23",
+    "babel-eslint": "^4.1.3",
+    "eslint": "^1.6.0",
+    "eslint-config-exhibit": "^1.0.0",
+    "eslint-plugin-babel": "^2.1.1"
   },
   "files": [
     "dist",
     "src"
   ],
-  "homepage": "https://github.com/exhibitjs/exhibit-sass",
-  "keywords": [
-    "exhibit-plugin"
-  ],
+  "homepage": "https://github.com/exhibitjs/exhibit-builder-sass",
   "license": "MIT",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/exhibitjs/exhibit-sass.git"
+    "url": "https://github.com/exhibitjs/exhibit-builder-sass.git"
   },
   "scripts": {
-    "build": "babel src --source-maps --out-dir dist",
-    "prepublish": "eslint src && npm run build",
-    "watch": "nodemon --exec 'npm run build' --watch src --watch index.js --watch package.json"
+    "build": "babel src --out-dir dist",
+    "buildwatch": "babel src --out-dir dist --watch",
+    "prepublish": "npm run build"
   }
 }

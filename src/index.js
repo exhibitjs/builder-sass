@@ -4,10 +4,16 @@ import {basename, normalize, join, dirname} from 'path';
 let render;
 const scssExt = /\.scss$/;
 
-export default function () {
+const permittedOptions = [
+  'indentType', 'indentWidth', 'linefeed', 'outputStyle',
+  'precision', 'sourceComments',
+];
+const numPermittedOptions = permittedOptions.length;
 
+
+export default function (options) {
   return function exhibitSass(path, contents) {
-    const {Promise, SourceError} = this;
+    const {Promise, SourceError} = this.util;
 
     if (!render) render = Promise.promisify(sass.render);
 
@@ -25,9 +31,12 @@ export default function () {
     // quick exit if the source is empty
     // (necessitated by https://github.com/sass/node-sass/issues/924)
     if (!source) {
-      const results = {};
-      results[cssPath] = '';
-      return results;
+      // const results = {};
+      // results[cssPath] = '';
+      // return results;
+      return {
+        [cssPath]: '',
+      };
     }
 
     // for erroring from partials, remember how imports get resolved
@@ -102,6 +111,12 @@ export default function () {
       },
     };
 
+    if (options) {
+      for (let i = 0; i < numPermittedOptions; i++) {
+        const name = permittedOptions[i];
+        sassOptions[name] = options[name];
+      }
+    }
 
     return render(sassOptions)
       .catch(err => {
@@ -114,12 +129,10 @@ export default function () {
         });
       })
       .then(result => {
-        const results = {};
-        results[cssPath] = result.css;
-
-        // todo: add source map
-
-        return results;
+        return {
+          [cssPath]: result.css,
+          // [`${cssPath}.map`]: result.map, // TODO
+        };
       });
   };
 }
