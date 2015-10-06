@@ -15,7 +15,7 @@ $ npm install --save-dev exhibit-builder-sass
 ```js
 exhibit('src')
   .use('sass', options)
-  .build('dist', {watch: true});
+  .build('dist');
 ```
 
 - Non-SCSS files are passed straight through
