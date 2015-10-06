@@ -1,6 +1,6 @@
 {
   "name": "exhibit-builder-sass",
-  "description": "Exhibit builder for compiling SCSS files",
+  "description": "Exhibit builder for compiling SCSS files with node-sass",
   "version": "0.4.0",
   "author": "Callum Locke",
   "bugs": {
