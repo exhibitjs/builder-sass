@@ -26,9 +26,9 @@ exhibit('src')
 
 The following node-sass options may be set:
 
-- [`indentType`](https://github.com/sass/node-sass#indenttype)
-- [`indentWidth`](https://github.com/sass/node-sass#indentwidth)
-- [`linefeed`](https://github.com/sass/node-sass#linefeed)
+- [`indentType`](https://github.com/sass/node-sass#indenttype--v300)
+- [`indentWidth`](https://github.com/sass/node-sass#indentwidth--v300)
+- [`linefeed`](https://github.com/sass/node-sass#linefeed--v300)
 - [`outputStyle`](https://github.com/sass/node-sass#outputstyle)
 - [`precision`](https://github.com/sass/node-sass#precision)
 - [`sourceComments`](https://github.com/sass/node-sass#sourcecomments)
