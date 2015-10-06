@@ -1,7 +1,7 @@
 {
   "name": "exhibit-builder-sass",
   "description": "Exhibit builder for compiling SCSS files",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": "Callum Locke",
   "bugs": {
     "url": "https://github.com/exhibitjs/exhibit-builder-sass/issues"
