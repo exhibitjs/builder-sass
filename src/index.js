@@ -1,67 +1,59 @@
 import sass from 'node-sass';
-import {basename, normalize, join, dirname} from 'path';
+import path from 'path';
 
 let render;
 const scssExt = /\.scss$/;
+
+const defaults = {
+  include: '**/*.scss',
+};
 
 const permittedOptions = [
   'indentType', 'indentWidth', 'linefeed', 'outputStyle',
   'precision', 'sourceComments',
 ];
-const numPermittedOptions = permittedOptions.length;
-
 
 export default function (options) {
-  return function exhibitSass(path, contents) {
-    const {Promise, SourceError} = this.util;
+  options = Object.assign({}, defaults, options);
+  let sassOptions;
 
-    if (!render) render = Promise.promisify(sass.render);
+  return function *exhibitSass(job) {
+    const {
+      matches, file, contents, base,
+      importFirst,
+      util: {Promise, SourceError, _},
+    } = job;
 
-    // pass non-SCSS files straight through
-    if (!scssExt.test(path)) return contents;
+    // skip irrelevant files
+    if (!matches(options.include)) return contents;
 
-    // block SCSS partials
-    if (basename(path).charAt(0) === '_') return null;
+    // block partials
+    if (path.basename(file).charAt(0) === '_') return null;
 
+    // establish the output filename
+    const outputFile = file.replace(scssExt, '.css');
 
-    // establish the output path
-    const cssPath = path.replace(scssExt, '.css');
-    const source = contents.toString();
-
-    // quick exit if the source is empty
+    // exit fast if the source is empty
     // (necessitated by https://github.com/sass/node-sass/issues/924)
-    if (!source) {
-      // const results = {};
-      // results[cssPath] = '';
-      // return results;
-      return {
-        [cssPath]: '',
-      };
-    }
+    const source = contents.toString();
+    if (!source) return {[outputFile]: ''};
 
-    // for erroring from partials, remember how imports get resolved
+    // keep memos of how imports get resolved, in case we need this info to
+    // report an error from a partial
     const rememberedImportContents = {};
-    // let actualPrev = path;
-
     const resolvedImportPaths = {
-      stdin: path,
+      stdin: file,
     };
 
     // establish options for node-sass
-    const sassOptions = {
+    const config = {
       data: source,
 
       importer: (url, prev, done) => {
         // make a list of possible file paths
-        // console.log('URL', url, 'PREV', prev);
-
-        const importingFile = (prev === 'stdin' ? path : prev);
-        // const importingFile = prevLookup[prev];
-
-        // console.log(`\nexhibit-sass import\n  init: ${path}\n  prev: ${prev}\n  file: ${importingFile}\n  impt: ${url}`);
-
-        const resolvedURL = normalize(join(dirname(importingFile), url));
-        const projectRootURL = normalize(join(this.base, url));
+        const importingFile = (prev === 'stdin' ? file : prev);
+        const resolvedURL = path.normalize(path.join(path.dirname(importingFile), url));
+        const projectRootURL = path.normalize(path.join(base, url));
 
         const possiblePaths = (() => {
           // rewrite this it's shite
@@ -94,45 +86,46 @@ export default function (options) {
           return paths;
         })();
 
-        // try them all in turn (later, `this.import` will take an array and do this for us - also checking *all* the possibilities in the local project before resorting to load paths, which will make it faster as it won't have to check disk locations all the time)
-        this.importFirst(possiblePaths, ['scss', 'css']).then(result => {
-          // console.log(`exhibit-sass imported!\n  from (real): ${result.path}`);
-          // prevLookup[url] = result.path;
+        // try them all in turn
+        importFirst(possiblePaths, ['scss', 'css']).then(result => {
           rememberedImportContents[url] = result.contents;
-          resolvedImportPaths[url] = result.path;
-          done({contents: result.contents.toString(), file: result.path});
+          resolvedImportPaths[url] = result.file;
+          done({contents: result.contents.toString(), file: result.file});
         }).catch(() => {
-          // this is sending an error to Sass, which will send us a new error back including file/line details.
+          // send an error **to Sass**, which will send us back a new error
+          // including file/line details.
           done(new Error(
-            `exhibit-sass: Could not import "${url}" from ${dirname(importingFile)}`
+            `exhibit-sass: Could not import "${url}" from ${path.dirname(importingFile)}`
           ));
         });
         return;
       },
     };
 
-    if (options) {
-      for (let i = 0; i < numPermittedOptions; i++) {
-        const name = permittedOptions[i];
-        sassOptions[name] = options[name];
-      }
-    }
+    // add any user config
+    if (!sassOptions) sassOptions = _.pick(options, permittedOptions);
+    Object.assign(config, sassOptions);
 
-    return render(sassOptions)
-      .catch(err => {
-        throw new SourceError({
-          message: err.message.split('\n')[0],
-          path: resolvedImportPaths[err.file] || `unknown(${err.file})`,
-          contents: (err.file === 'stdin' ? source : rememberedImportContents[err.file]),
-          line: err.line,
-          column: err.column,
-        });
-      })
-      .then(result => {
-        return {
-          [cssPath]: result.css,
-          // [`${cssPath}.map`]: result.map, // TODO
-        };
+    // make a promise-returning sass-rendering function
+    if (!render) render = Promise.promisify(sass.render);
+
+    // compile!
+    try {
+      const {css} = yield render(config);
+
+      return {
+        [outputFile]: css,
+        // [`${outputFile}.map`]: result.map, // TODO
+      };
+    }
+    catch (error) {
+      throw new SourceError({
+        message: error.message.split('\n')[0],
+        path: resolvedImportPaths[error.file] || `unknown(${error.file})`,
+        contents: (error.file === 'stdin' ? source : rememberedImportContents[error.file]),
+        line: error.line,
+        column: error.column,
       });
+    }
   };
 }

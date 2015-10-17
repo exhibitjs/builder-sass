@@ -1,21 +1,19 @@
-# exhibit-builder-sass [![NPM version][npm-image]][npm-url] [![Dependency Status][depstat-image]][depstat-url]
-
-> [Exhibit.js](https://github.com/exhibitjs/exhibit) builder plugin for bundling scripts with [Sass](http://sass-lang.com/) (via [node-sass](https://github.com/sass/node-sass)).
-
-
-## Installation
-
-```sh
-$ npm install --save-dev exhibit-builder-sass
-```
-
+> # sass
+>
+> **Exhibit.js builder plugin**
+>
+> Compiles SCSS files with [node-sass](https://github.com/sass/node-sass).
+>
+> ```sh
+> $ npm install -D exhibit-builder-sass
+> ```
+>
+> [![NPM version][npm-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Dependency Status][depstat-image]][depstat-url] [![devDependency Status][devdepstat-image]][devdepstat-url] [![peerDependency Status][peerdepstat-image]][peerdepstat-url]
 
 ## Usage
 
 ```js
-exhibit('src')
   .use('sass', options)
-  .build('dist');
 ```
 
 - Non-SCSS files are passed straight through
@@ -24,7 +22,7 @@ exhibit('src')
 
 ## Options
 
-The following node-sass options may be set:
+The following node-sass options may be set (see node-sass docs for definitions):
 
 - [`indentType`](https://github.com/sass/node-sass#indenttype--v300)
 - [`indentWidth`](https://github.com/sass/node-sass#indentwidth--v300)
@@ -33,6 +31,14 @@ The following node-sass options may be set:
 - [`precision`](https://github.com/sass/node-sass#precision)
 - [`sourceComments`](https://github.com/sass/node-sass#sourcecomments)
 
+#### Additional options
+
+> **`include`** (string/array/function) — default: `'**/*.scss'`
+
+Which files to process. Follows Exhibit’s [glob convention](https://github.com/exhibitjs/exhibit/blob/master/docs/glob-convention.md).
+
+
+---
 
 ## License
 
